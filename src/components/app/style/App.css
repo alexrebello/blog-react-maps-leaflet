@@ -72,7 +72,7 @@ form.landing-page-form .input-block input {
   padding: 0 16px;
 }
 
-form.landing-page-form button.confirm-button {
+form.landing-page-form button.confirm-button, button.confirm-reset {
   margin-top: 34px;
 
   width: 100%;
@@ -87,7 +87,7 @@ form.landing-page-form button.confirm-button {
   transition: background-color 0.2s;
 }
 
-form.landing-page-form button.confirm-button:hover {
+form.landing-page-form button.confirm-button:hover, button.confirm-reset:hover {
   background-color: #6c79f5;
 }
 
@@ -117,6 +117,40 @@ form.landing-page-form button.confirm-button:hover {
 #page-map .map-popup .leaflet-popup-tip-container {
   display: none;
 }
+
+#page-map .map-popup .leaflet-popup-content .edit-button {
+  margin-top: 34px;
+  
+  width: 40%;
+  height: 25px;
+  border: 0;
+  cursor: pointer;
+  background-color: #4254f5;
+  border-radius: 10px;
+  color: #ffffff;
+  font-weight: 400;
+
+  transition: background-color 0.2s;
+
+} 
+
+
+#page-map .map-popup .leaflet-popup-content .delete-button {
+  margin-top: 34px;
+
+  width: 40%;
+  height: 25px;
+  border: 0;
+  cursor: pointer;
+  background-color: #ec0a2f;
+  border-radius: 10px;
+  color: #ffffff;
+  font-weight: 400;
+
+  transition: background-color 0.2s;
+
+} 
+
 
 /* Styling react select */
 

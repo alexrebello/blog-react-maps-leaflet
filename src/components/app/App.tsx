@@ -1,7 +1,9 @@
 import "leaflet/dist/leaflet.css";
+import "react-datepicker/dist/react-datepicker.css";
+
 
 import React, { FormEvent, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import Leaflet from "leaflet";
 import { v4 as uuidv4 } from "uuid";
 
@@ -11,7 +13,10 @@ import AsyncSelect from "react-select/async";
 import mapPackage from "./imagens/package.svg";
 import mapPin from "./imagens/pin.svg";
 
+import DatePicker from "react-datepicker";
+
 import "./style/App.css";
+import CustomPopup from "./CustomPopup";
 
 const initialPosition = { lat: -23.5407048, lng: -46.645248 };
 
@@ -34,6 +39,7 @@ interface Delivery {
   name: string;
   address: string;
   complement: string;
+  date: string | null;
   latitude: number;
   longitude: number;
 }
@@ -46,14 +52,16 @@ type Position = {
 function App() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [position, setPosition] = useState<Position | null>(null);
-  //const [inputDate, setDate] = useState<Date | null >(null);
-
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [id, setId] = useState('');
   const [name, setName] = useState("");
   const [complement, setComplement] = useState("");
   const [address, setAddress] = useState<{
     label: string;
     value: string;
   } | null>(null);
+  const [inputDate, setDate] = useState<Date | null >(null);
   const [location, setLocation] = useState(initialPosition);
 
   const loadOptions = (inputValue: any, callback: any) => {
@@ -65,6 +73,7 @@ function App() {
         return places.push({
           label: item.place_name,
           value: item.place_name,
+          hours: item.hours,
           coords: item.center,
           place: item.place_name,
         });
@@ -75,7 +84,6 @@ function App() {
   };
 
   const handleChangeSelect = (event: any) => {
-    console.log("Changed", event);
     setPosition({
       longitude: event.coords[0],
       latitude: event.coords[1],
@@ -90,30 +98,103 @@ function App() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
-    if (!address || !name ) return;
+    //if (!address || !name || !inputDate ) return;
+    if (!address) { 
+      alert('Insira o Endereço')
+      return
+      } else if (!name) { 
+        alert('Insira o Nome')
+        return
+      } else if (!inputDate) {
+        alert('Insira Data de Entrega')
+        return
+      }
 
-    setDeliveries([
-      ...deliveries,
+    let temporaryDeliverieses: Delivery[] = [...deliveries,];
+    const date: string = inputDate.toISOString();
+
+    let delivery: Delivery = 
       {
         id: uuidv4(),
         name,
         address: address?.value || "",
         complement,
+        date, 
         latitude: location.lat,
         longitude: location.lng,
-      },
-    ]);
+      };
+
+    if(isEditing) {
+      temporaryDeliverieses = makeChange(temporaryDeliverieses, delivery)
+    }
+
+    setDeliveries([...temporaryDeliverieses,delivery,]);
+
+    setId('');
+    setName("");
+    setAddress(null);
+    setComplement("");
+    setDate(null);
+    setPosition(null);
+    setIsEditing(false);
+  }
+
+  function makeChange(temporaryDeliverieses: Delivery[], delivery: Delivery) {
+    temporaryDeliverieses = temporaryDeliverieses.map(it => {
+      if (it.id === id) {
+        it.id = id;
+        it.name = delivery.name;
+        it.address = delivery.address;
+        it.complement = delivery.complement;
+        it.date = delivery.date;
+        it.latitude = delivery.latitude;
+        it.longitude = delivery.longitude;
+      }
+      return it;
+    });
+    return temporaryDeliverieses;
+  }
+
+  async function handleFormReset(event: FormEvent) {
+    event.preventDefault();
 
     setName("");
     setAddress(null);
     setComplement("");
+    setDate(null);
     setPosition(null);
+    setIsEditing(false)
+  }
+
+  async function modifierDelivery(event: any) {
+    event.preventDefault();
+    setIsEditing(true)
+    let found: Delivery | any = deliveries.find(it => it.id === event.target.value);
+
+    if (found.id) {
+      setId(found.id);
+      console.log(found.id)
+      setName(found.name);
+      console.log(found.name)
+      //setAddress(found.address.value);
+      //console.log(found.address)
+      setComplement(found.complement);
+      console.log(found.complement)
+      //setDate(found.date);
+      //console.log(found.date);
+    }
+  }
+
+  async function deletarDelivery(event: any) {
+    setDeliveries([
+      ...deliveries.filter(it => it.id !== event.target.value)
+    ]);
   }
 
   return (
     <div id="page-map">
       <main>
-        <form onSubmit={handleSubmit} className="landing-page-form">
+        <form onSubmit={handleSubmit} onReset={handleFormReset} className="landing-page-form">
           <fieldset>
             <legend>Entregas</legend>
 
@@ -148,11 +229,22 @@ function App() {
                 onChange={(event) => setComplement(event.target.value)}
               />
             </div>
+
+            <div className="input-block">
+              <label htmlFor="dateDelivery">Data De Entrega</label>
+              <DatePicker 
+                selected={ inputDate === null ? new Date() : new Date(inputDate)}
+                onChange={(event: any)=> setDate(new Date( event.toISOString()))}
+                dateFormat={"dd-MM-yyyy"}
+              />
+              
+            </div>
           </fieldset>
 
-          <button className="confirm-button" type="submit">
-            Confirmar
-          </button>
+          <button className="confirm-button" type="submit">{isEditing ? "Confirmar Alteração" : "Confirmar"}</button>
+          <button className="confirm-reset" type="reset">{isEditing ? "Cancelar Alteração" : "Limpar"}</button>
+           
+          
         </form>
       </main>
 
@@ -179,19 +271,11 @@ function App() {
             icon={mapPackageIcon}
             position={[delivery.latitude, delivery.longitude]}
           >
-            <Popup
-              closeButton={false}
-              minWidth={240}
-              maxWidth={240}
-              className="map-popup"
-            >
-              <div>
-                <h3>{delivery.name}</h3>
-                <p>
-                  {delivery.address} - {delivery.complement}
-                </p>
-              </div>
-            </Popup>
+            <CustomPopup
+              delivery={delivery}
+              modifierDelivery={modifierDelivery}
+              deletarDelivery={deletarDelivery}
+            />
           </Marker>
         ))}
       </MapContainer>
